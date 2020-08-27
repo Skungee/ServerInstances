@@ -1,0 +1,33 @@
+configuration-version: 1
+
+instances:
+    # The dedotaded wam allocated to the servers. This can be modified by the Instance object.
+    # Xmx is the maximum amount allocated. Xmx should always be greater than or equal to Xms.
+    default-Xmx: 512M
+    # Xms is the amount allocated heap size.
+    default-Xms: 256M
+    # The range of the ports for the servers (Keep in mind the ports need to be port forwarded or available to you)
+    minimum-port: 25000
+    maximum-port: 27000
+    fallback:
+        # Should the player only get moved when an Instance server stops, crashes or if it's moving the user?
+        enabled: true
+        # The server that players will get sent to when an Instance gets closed.
+        server: "Hub"
+        # The message stated to the user when the user gets moved from an Instance to the fallback server.
+        # Placeholders are:
+        #   %previous% - the server they got moved from.
+        #   %kickmsg% - the kick message if the server gave a reasoning.
+        message: "&cYou have been moved from the server %previous% to the fallback server Hub due to %kickmsg%"
+    # The maximum amount of server instances that can be running at the same time.
+    max-servers: 25
+    # You can add some command arguments here for the server run command.
+    # The default argument "-DIReallyKnowWhatIAmDoingISwear" allows the server to start up without the outdated delay message.
+    # If you're using PaperSpigot you can add the argument "-Dcom.mojang.eula.agree=true" to allow for the eula to be signed as true.
+    # This argument is great if you're generating servers, otherwise the eula from the server directory will be used like normal.
+    command-arguments:
+        - "-DIReallyKnowWhatIAmDoingISwear"
+        - "-XX:+UseConcMarkSweepGC"
+
+    # If you would like ServerInstances to bind to an exact IP address you can define so here. Ports not excepted.
+    address-bind: "localhost"
