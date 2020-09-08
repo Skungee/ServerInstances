@@ -29,3 +29,10 @@ instances:
 
     # If you would like ServerInstances to bind to an exact IP address you can define so here. Ports not excepted.
     address-bind: "localhost"
+
+# Protocol is basically a communication system used by all server instances to tell the main core everything.
+protocol:
+    password: "serverinstances"
+    address-bind: "localhost"
+    ssl: false
+    port: 6379

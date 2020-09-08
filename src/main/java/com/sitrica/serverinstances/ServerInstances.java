@@ -7,11 +7,17 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import com.google.common.collect.ImmutableMap;
+import com.sitrica.serverinstances.database.H2Database;
+import com.sitrica.serverinstances.database.InstanceMessage;
+import com.sitrica.serverinstances.database.InstanceMessageSerializer;
+import com.sitrica.serverinstances.handlers.MessageHandler;
 import com.sitrica.serverinstances.objects.RunningProperties;
 import com.sitrica.serverinstances.objects.Template;
 import com.sitrica.serverinstances.utils.Utils;
@@ -25,13 +31,14 @@ public class ServerInstances {
 
 	private final File DATA_FOLDER, INSTANCES_FOLDER, SAVED_FOLDER, TEMPLATE_FOLDER, RUNNING_SERVERS_FOLDER, RUN_SCRIPTS;
 	private final List<Instance> instances = new ArrayList<>();
+	private final H2Database<InstanceMessage> database;
 	private final ServerManager manager;
 	private Configuration configuration;
 	private InetAddress bindAddress;
 	private final Plugin plugin;
 	private final int max;
 
-	public ServerInstances(Plugin plugin) {
+	public ServerInstances(Plugin plugin) throws ClassNotFoundException, SQLException {
 		this.plugin = plugin;
 		this.DATA_FOLDER = new File(plugin.getDataFolder().getParentFile(), "ServerInstances");
 		if (!DATA_FOLDER.exists())
@@ -57,7 +64,8 @@ public class ServerInstances {
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
-		manager = new ServerManager(this);
+		database = new H2Database<InstanceMessage>(DATA_FOLDER, "server-instances", InstanceMessage.class, ImmutableMap.of(InstanceMessage.class, new InstanceMessageSerializer()));
+		manager = new ServerManager(this, database);
 		max = configuration.getInt("instances.max-servers", 25);
 		//If the bungeecord gets forced closed.
 		Runtime.getRuntime().addShutdownHook(new Thread() {
@@ -93,6 +101,10 @@ public class ServerInstances {
 		Instance instance = new Instance(template, address);
 		instances.add(instance);
 		return instance;
+	}
+
+	public <H extends MessageHandler> void addHandler(H handler) {
+		manager.addHandler(handler);
 	}
 
 	public List<Instance> getInstances() {

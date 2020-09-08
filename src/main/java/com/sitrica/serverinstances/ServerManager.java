@@ -6,6 +6,7 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -18,22 +19,28 @@ import java.util.stream.Collectors;
 import com.google.common.collect.Lists;
 import com.sitrica.serverinstances.ServerInstances.Instance;
 import com.sitrica.serverinstances.ServerInstances.State;
+import com.sitrica.serverinstances.database.H2Database;
+import com.sitrica.serverinstances.database.InstanceMessage;
+import com.sitrica.serverinstances.handlers.MessageHandler;
 import com.sitrica.serverinstances.objects.RunningProperties;
 import com.sitrica.serverinstances.objects.Template;
 import com.sitrica.serverinstances.utils.Utils;
 
 import net.md_5.bungee.api.ProxyServer;
 import net.md_5.bungee.api.config.ServerInfo;
+import net.md_5.bungee.api.scheduler.TaskScheduler;
 
 public class ServerManager {
 
 	private final Map<Instance, RunningProperties> starting = new HashMap<>();
 	private final Map<Instance, RunningProperties> running = new HashMap<>();
+	private final Set<MessageHandler> handlers = new HashSet<>();
 	private final ServerInstances origin;
 
-	public ServerManager(ServerInstances origin) {
+	public ServerManager(ServerInstances origin, H2Database<InstanceMessage> database) {
 		this.origin = origin;
-		origin.getRegistrar().getProxy().getScheduler().schedule(origin.getRegistrar(), () -> {
+		TaskScheduler scheduler = origin.getRegistrar().getProxy().getScheduler();
+		scheduler.schedule(origin.getRegistrar(), () -> {
 			// Check if the server is offline.
 			for (Iterator<Entry<Instance, RunningProperties>> iterator = running.entrySet().iterator(); iterator.hasNext();) {
 				Entry<Instance, RunningProperties> entry = iterator.next();
@@ -59,6 +66,24 @@ public class ServerManager {
 				starting.remove(entry.getKey());
 			}
 		}, 0, 5, TimeUnit.SECONDS);
+		scheduler.schedule(origin.getRegistrar(), () -> {
+			for (Iterator<String> iterator = database.getKeys().iterator(); iterator.hasNext();) {
+				String key = iterator.next();
+				InstanceMessage message = database.get(key);
+				ServerInfo info = ProxyServer.getInstance().getServerInfo(message.getServerName());
+				Optional<Entry<Instance, RunningProperties>> instance = getInstance(info);
+				if (!instance.isPresent())
+					return;
+				handlers.stream()
+						.filter(handler -> handler.getType().equals(message.getType()))
+						.forEach(handler -> handler.onMessageRecieve(instance.get().getValue(), message));
+				database.delete(key);
+			}
+		}, 0, 100, TimeUnit.MILLISECONDS);
+	}
+
+	public <H extends MessageHandler> void addHandler(H handler) {
+		handlers.add(handler);
 	}
 
 	public Set<Instance> getInstancesByTemplate(String template) {
@@ -66,6 +91,10 @@ public class ServerManager {
 				.map(entry -> entry.getKey())
 				.filter(instance -> instance.getTemplate().getName().equalsIgnoreCase(template))
 				.collect(Collectors.toSet());
+	}
+
+	public Optional<Entry<Instance, RunningProperties>> getInstance(ServerInfo info) {
+		return running.entrySet().stream().filter(entry -> entry.getValue().getServerInfo().equals(info)).findFirst();
 	}
 
 	public void start(Instance instance) throws IOException {
