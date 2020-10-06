@@ -33,6 +33,6 @@ instances:
 # All details for the bootloader, which relays info to the main system from Spigot to Bungeecord.
 bootloader:
     password: "serverinstances"
-    address-bind: "121.0.0.1"
+    address-bind: "127.0.0.1"
     port: 6110
     debug: false
