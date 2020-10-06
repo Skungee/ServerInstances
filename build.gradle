@@ -1,0 +1,81 @@
+import org.apache.tools.ant.filters.ReplaceTokens
+
+plugins {
+	id 'com.github.johnrengelman.shadow' version '5.2.0'
+	id 'maven-publish'
+	id 'eclipse'
+	id 'java'
+}
+
+jar.archiveName = project.name + '.jar'
+
+repositories {
+	mavenCentral()
+	jcenter()
+
+	//Bungeecord
+	maven {
+		url "https://oss.sonatype.org/content/repositories/snapshots"
+	}
+
+	maven {
+		url 'https://maven.pkg.github.com/Sitrica/Japson/'
+		credentials {
+            username = "Sitrica"
+            password = System.getenv("GITHUB_PACKAGES_KEY")
+        }
+	}
+
+}
+
+dependencies {
+
+	//Bungeecord
+	implementation (group: 'net.md-5', name: 'bungeecord-api', version: '1.16-R0.4-SNAPSHOT')
+
+	// Japson
+	shadow (group: 'com.sitrica', name: 'japson-beta', version: '1.1.3.4-SNAPSHOT')
+
+}
+
+publishing {
+	repositories {
+		maven {
+			name = "ServerInstances"
+			url = uri("https://maven.pkg.github.com/Skungee/ServerInstances")
+			credentials {
+				username = 'Skungee'
+				password = project.findProperty("gpr.key") ?: System.getenv("GITHUB_PACKAGES_KEY")
+			}
+		}
+	}
+	publications {
+		shadow(MavenPublication) {publication ->
+			project.shadow.component(publication)
+			version = version
+			groupId = 'com.skungee'
+			def releases = 'serverinstances' // Don't modify
+			def snapshots = 'serverinstances-beta' // Don't modify
+			artifactId = version.endsWith('SNAPSHOT') || version.contains('ALPHA') ? snapshots : releases
+		}
+	}
+}
+
+processResources {
+	filter ReplaceTokens, tokens: ["version": project.property("version")]
+	from (sourceSets.main.resources.srcDirs)
+}
+
+shadowJar {
+	configurations = [project.configurations.shadow]
+	archiveVersion = version
+	baseName = project.name
+	classifier = ''
+	minimize()
+	dependencies {
+		exclude(dependency('org.spigotmc:'))
+		exclude(dependency('net.md_5:'))
+		exclude(dependency('org.yaml:'))
+		exclude(dependency('io.netty:'))
+	}
+}
