@@ -30,9 +30,9 @@ instances:
     # If you would like ServerInstances to bind to an exact IP address you can define so here. Ports not excepted.
     address-bind: "localhost"
 
-# Protocol is basically a communication system used by all server instances to tell the main core everything.
-protocol:
+# All details for the bootloader, which relays info to the main system from Spigot to Bungeecord.
+bootloader:
     password: "serverinstances"
-    address-bind: "localhost"
-    ssl: false
-    port: 6379
+    address-bind: "121.0.0.1"
+    port: 6110
+    debug: false

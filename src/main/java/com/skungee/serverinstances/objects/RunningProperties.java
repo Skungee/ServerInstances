@@ -1,4 +1,4 @@
-package com.sitrica.serverinstances.objects;
+package com.skungee.serverinstances.objects;
 
 import net.md_5.bungee.api.config.ServerInfo;
 

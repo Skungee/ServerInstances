@@ -1,4 +1,4 @@
-package com.sitrica.serverinstances.utils;
+package com.skungee.serverinstances.utils;
 
 import java.io.IOException;
 import java.net.InetAddress;

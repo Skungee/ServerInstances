@@ -1,10 +1,11 @@
-package com.sitrica.serverinstances;
+package com.skungee.serverinstances;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.sql.SQLException;
@@ -12,16 +13,16 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
-import com.google.common.collect.ImmutableMap;
-import com.sitrica.serverinstances.database.H2Database;
-import com.sitrica.serverinstances.database.InstanceMessage;
-import com.sitrica.serverinstances.database.InstanceMessageSerializer;
-import com.sitrica.serverinstances.handlers.MessageHandler;
-import com.sitrica.serverinstances.objects.RunningProperties;
-import com.sitrica.serverinstances.objects.Template;
-import com.sitrica.serverinstances.utils.Utils;
+import com.sitrica.japson.gson.JsonObject;
+import com.sitrica.japson.server.JapsonServer;
+import com.sitrica.japson.shared.Executor;
+import com.skungee.serverinstances.objects.RunningProperties;
+import com.skungee.serverinstances.objects.Template;
+import com.skungee.serverinstances.utils.Utils;
 
+import net.md_5.bungee.api.ProxyServer;
 import net.md_5.bungee.api.plugin.Plugin;
 import net.md_5.bungee.config.Configuration;
 import net.md_5.bungee.config.ConfigurationProvider;
@@ -29,16 +30,17 @@ import net.md_5.bungee.config.YamlConfiguration;
 
 public class ServerInstances {
 
-	private final File DATA_FOLDER, INSTANCES_FOLDER, SAVED_FOLDER, TEMPLATE_FOLDER, RUNNING_SERVERS_FOLDER, RUN_SCRIPTS;
+	final File DATA_FOLDER, INSTANCES_FOLDER, SAVED_FOLDER, TEMPLATE_FOLDER, RUNNING_SERVERS_FOLDER, RUN_SCRIPTS;
 	private final List<Instance> instances = new ArrayList<>();
-	private final H2Database<InstanceMessage> database;
+	private final TemplateLoader templateLoader;
 	private final ServerManager manager;
 	private Configuration configuration;
 	private InetAddress bindAddress;
 	private final Plugin plugin;
+	private JapsonServer japson;
 	private final int max;
 
-	public ServerInstances(Plugin plugin) throws ClassNotFoundException, SQLException {
+	public ServerInstances(Plugin plugin) throws ClassNotFoundException, SQLException, IOException {
 		this.plugin = plugin;
 		this.DATA_FOLDER = new File(plugin.getDataFolder().getParentFile(), "ServerInstances");
 		if (!DATA_FOLDER.exists())
@@ -64,9 +66,30 @@ public class ServerInstances {
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
-		database = new H2Database<InstanceMessage>(DATA_FOLDER, "server-instances", InstanceMessage.class, ImmutableMap.of(InstanceMessage.class, new InstanceMessageSerializer()));
-		manager = new ServerManager(this, database);
+		templateLoader = new TemplateLoader(this);
+		manager = new ServerManager(this);
 		max = configuration.getInt("instances.max-servers", 25);
+		try {
+			japson = new JapsonServer(configuration.getString("bootloader.address-bind", "127.0.0.1"), configuration.getInt("bootloader.port", 6110))
+					.setPassword(configuration.getString("bootloader.password", "serverinstances"));
+			if (configuration.getBoolean("bootloader.debug"))
+				japson.enableDebug();
+			japson.registerHandlers(new Executor(0x01) {
+				@Override
+				public void execute(InetAddress packetAddress, int packetPort, JsonObject object) {
+					int port = object.get("port").getAsInt();
+					String address = object.get("address").getAsString();
+					InetSocketAddress socketAddress = new InetSocketAddress(address, port);
+					ProxyServer.getInstance().getServers().entrySet().stream()
+							.filter(entry -> entry.getValue().getSocketAddress().equals(socketAddress))
+							.map(entry -> entry.getValue())
+							.findFirst()
+							.ifPresent(info -> manager.started(info));
+				}
+			});
+		} catch (UnknownHostException | SocketException e) {
+			e.printStackTrace();
+		}
 		//If the bungeecord gets forced closed.
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			public void run() {
@@ -103,12 +126,16 @@ public class ServerInstances {
 		return instance;
 	}
 
-	public <H extends MessageHandler> void addHandler(H handler) {
-		manager.addHandler(handler);
+	public Set<Template> getTemplates() {
+		return templateLoader.getTemplates();
 	}
 
 	public List<Instance> getInstances() {
 		return Collections.unmodifiableList(instances);
+	}
+
+	public ServerManager getServerManager() {
+		return manager;
 	}
 
 	public File getRunningServerFolder() {

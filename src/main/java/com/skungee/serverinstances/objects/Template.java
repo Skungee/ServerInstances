@@ -1,4 +1,4 @@
-package com.sitrica.serverinstances.objects;
+package com.skungee.serverinstances.objects;
 
 import java.io.File;
 import java.io.IOException;

@@ -1,0 +1,31 @@
+
+# The MOTD of the server fro mthis template.
+motd: "A ServerInstance template motd"
+
+# If the server should have the restricted bungeecord option.
+restricted: false
+
+# The internal name of this template.
+name: "Example"
+
+# Set the exact port to run this template on.
+#port: 1337
+
+# Total memory allocation pool of this template's servers.
+# M = mb G = gb
+xmx: "1G"
+
+# Startup memory allocation pool of this template's servers.
+# M = mb G = gb
+xms: "512M"
+
+# The jar name to look for and execute.
+jar-name: "paper-spigot.jar"
+
+# If the server should save so ServerInstance can start it again as it left off.
+save: false
+
+# Add additional command arguments.
+command-arguments:
+    - "-DIReallyKnowWhatIAmDoingISwear" # Ignore outdated version loading time.
+    - "-XX:+UseConcMarkSweepGC" # Garbage collector
