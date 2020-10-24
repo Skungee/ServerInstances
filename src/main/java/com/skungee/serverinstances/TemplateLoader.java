@@ -30,8 +30,8 @@ public class TemplateLoader {
 
 	public TemplateLoader(ServerInstances instance) throws IOException {
 		this.instance = instance;
-		update();
 		watcher = FileSystems.getDefault().newWatchService();
+		update();
 	}
 
 	public void update() {
