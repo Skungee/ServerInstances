@@ -1,5 +1,5 @@
 
-# The MOTD of the server fro mthis template.
+# The MOTD of the server from this template.
 motd: "A ServerInstance template motd"
 
 # If the server should have the restricted bungeecord option.
