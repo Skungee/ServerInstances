@@ -5,7 +5,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.google.common.io.Files;
+import com.skungee.serverinstances.utils.Utils;
 
 public class Template {
 
@@ -36,7 +36,7 @@ public class Template {
 	}
 
 	public void copyToDirectory(File directory) throws IOException {
-		Files.copy(folder, directory);
+		Utils.copyDirectory(folder, directory);
 	}
 
 	public List<String> getAdditionalCommands() {
