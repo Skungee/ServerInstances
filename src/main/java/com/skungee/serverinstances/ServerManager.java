@@ -22,6 +22,7 @@ import com.skungee.serverinstances.objects.RunningProperties;
 import com.skungee.serverinstances.objects.Template;
 import com.skungee.serverinstances.utils.Utils;
 
+import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.ProxyServer;
 import net.md_5.bungee.api.config.ServerInfo;
 import net.md_5.bungee.api.scheduler.TaskScheduler;
@@ -119,7 +120,7 @@ public class ServerManager {
 		}
 
 		// Setup
-		ServerInfo info = ProxyServer.getInstance().constructServerInfo(name, instance.getAddress(), template.getMotd(), template.isRestricted());
+		ServerInfo info = ProxyServer.getInstance().constructServerInfo(name, instance.getAddress(), ChatColor.translateAlternateColorCodes('&', template.getMotd()), template.isRestricted());
 		File folder = new File(origin.getRunningServerFolder(), name);
 		if (folder.exists()) {
 			if (containsName(name)) {
@@ -127,8 +128,7 @@ public class ServerManager {
 				return;
 			}
 			//TODO handle deletion if the user doesn't want it for some reason.
-			folder.delete();
-			Files.delete(folder.toPath());
+			Utils.deleteDirectory(folder);
 		}
 		folder.mkdir();
 		template.copyToDirectory(folder);
@@ -155,11 +155,7 @@ public class ServerManager {
 			File folder = new File(origin.getRunningServerFolder(), info.getName());
 //			if (instance.getTemplate().isSaving())
 //				Files.copy(folder, directory);
-			try {
-				Files.deleteIfExists(folder.toPath());
-			} catch (IOException e) {}
-			// Just delete already
-			folder.delete();
+			Utils.deleteDirectory(folder);
 			process.destroy();
 			running.remove(instance);
 		}, 350, TimeUnit.MILLISECONDS);
