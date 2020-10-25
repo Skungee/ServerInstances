@@ -116,11 +116,13 @@ public class ServerInstances {
 		}
 	}
 
-	public Instance createInstance(Template template) throws IOException {
+	public Instance createInstance(Template template) throws IOException, IllegalAccessException {
 		int port = template.getPort();
 		if (port <= 0)
 			port = Utils.findPort(bindAddress, configuration.getInt("instances.minimum-port", 3000), configuration.getInt("instances.maximum-port", 27000));
 		InetSocketAddress address = new InetSocketAddress(bindAddress, port);
+		if (Utils.isTaken(address))
+			throw new IllegalAccessException("The port " + port + " is already in use for " + bindAddress.getHostAddress());
 		Instance instance = new Instance(template, address);
 		instances.add(instance);
 		return instance;

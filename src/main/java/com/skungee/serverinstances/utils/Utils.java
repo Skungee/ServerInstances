@@ -20,29 +20,31 @@ public class Utils {
 		}
 	}
 
-	public static int findPort(InetAddress address, int start, int max) throws IOException {
-		int port = start;
-		IOException lastException = null;
-		while (port < max) {
-			ServerSocket socket = null;
-			try {
-				socket = new ServerSocket();
-				socket.bind(new InetSocketAddress(address, port));
-				socket.setReuseAddress(true);
-				return port;
-			} catch (IOException e) {
-				lastException = e;
-			} finally {
-				if (socket != null) {
-					try {
-						socket.close();
-					} catch (IOException e) {}
-				}
+	public static boolean isTaken(InetSocketAddress address) {
+		ServerSocket socket = null;
+		try {
+			socket = new ServerSocket();
+			socket.bind(address);
+			socket.setReuseAddress(true);
+			return false;
+		} catch (IOException e) {
+			return true;
+		} finally {
+			if (socket != null) {
+				try {
+					socket.close();
+				} catch (IOException e) {}
 			}
+		}
+	}
+
+	public static int findPort(InetAddress address, int start, int max) {
+		int port = start;
+		while (port < max) {
+			if (!isTaken(new InetSocketAddress(address, port)))
+				return port;
 			port++;
 		}
-		if (lastException != null)
-			throw lastException;
 		return -1;
 	}
 
