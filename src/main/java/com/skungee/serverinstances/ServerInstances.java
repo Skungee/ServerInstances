@@ -117,6 +117,10 @@ public class ServerInstances {
 	}
 
 	public Instance createInstance(Template template) throws IOException, IllegalAccessException {
+		if (template.isDisabled())
+			throw new IllegalAccessException("The template " + template.getName() + " is disabled.");
+		if (!template.doesAllowDuplicates() && instances.stream().anyMatch(instance -> instance.getTemplate().equals(template)))
+			throw new IllegalAccessException("The template " + template.getName() + " is already running, and doesn't allow duplicates.");
 		int port = template.getPort();
 		if (port <= 0)
 			port = Utils.findPort(bindAddress, configuration.getInt("instances.minimum-port", 3000), configuration.getInt("instances.maximum-port", 27000));
@@ -128,20 +132,20 @@ public class ServerInstances {
 		return instance;
 	}
 
-	public Set<Template> getTemplates() {
-		return templateLoader.getTemplates();
-	}
-
-	public List<Instance> getInstances() {
-		return Collections.unmodifiableList(instances);
-	}
-
 	public ServerManager getServerManager() {
 		return manager;
 	}
 
 	public File getRunningServerFolder() {
 		return RUNNING_SERVERS_FOLDER;
+	}
+
+	public List<Instance> getInstances() {
+		return Collections.unmodifiableList(instances);
+	}
+
+	public Set<Template> getTemplates() {
+		return templateLoader.getTemplates();
 	}
 
 	public Plugin getRegistrar() {
@@ -158,7 +162,7 @@ public class ServerInstances {
 
 	public enum State {RUNNING, STARTING, IDLE}
 
-	class Instance {
+	protected class Instance {
 
 		private final InetSocketAddress address;
 		private final Template template;

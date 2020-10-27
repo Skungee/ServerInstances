@@ -29,3 +29,8 @@ save: false
 command-arguments:
     - "-DIReallyKnowWhatIAmDoingISwear" # Ignore outdated version loading time.
     - "-XX:+UseConcMarkSweepGC" # Garbage collector
+
+disabled: false
+
+# Allow duplicate instances using this template
+duplicates: true

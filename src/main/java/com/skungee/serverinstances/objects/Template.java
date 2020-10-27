@@ -11,20 +11,22 @@ public class Template {
 
 	private final List<String> commands = new ArrayList<>();
 	private final String name, xmx, xms, jarName, motd;
-	private final boolean save, restricted;
+	private final boolean save, restricted, duplicates;
 	private final File folder;
+	private boolean disabled;
 	private final int port;
 
-	public Template(File folder, String motd, String name, String xmx, String xms, String jarName, boolean save, String... commands) {
-		this(folder, false, motd, name, -1, xmx, xms, jarName, save, commands);
+	public Template(File folder, String motd, String name, String xmx, String xms, String jarName, boolean save, boolean duplicates, String... commands) {
+		this(folder, false, motd, name, -1, xmx, xms, jarName, save, duplicates, commands);
 	}
 
-	public Template(File folder, boolean restricted, String motd, String name, String xmx, String xms, String jarName, boolean save, String... commands) {
-		this(folder, restricted, motd, name, -1, xmx, xms, jarName, save, commands);
+	public Template(File folder, boolean restricted, String motd, String name, String xmx, String xms, String jarName, boolean save, boolean duplicates, String... commands) {
+		this(folder, restricted, motd, name, -1, xmx, xms, jarName, save, duplicates, commands);
 	}
 
-	public Template(File folder, boolean restricted, String motd, String name, int port, String xmx, String xms, String jarName, boolean save, String... commands) {
+	public Template(File folder, boolean restricted, String motd, String name, int port, String xmx, String xms, String jarName, boolean save, boolean duplicates, String... commands) {
 		this.restricted = restricted;
+		this.duplicates = duplicates;
 		this.jarName = jarName;
 		this.folder = folder;
 		this.motd = motd;
@@ -43,8 +45,20 @@ public class Template {
 		return commands;
 	}
 
+	public void setDisabled(boolean disabled) {
+		this.disabled = disabled;
+	}
+
+	public boolean doesAllowDuplicates() {
+		return duplicates;
+	}
+
 	public boolean isRestricted() {
 		return restricted;
+	}
+
+	public boolean isDisabled() {
+		return disabled;
 	}
 
 	public String getJarName() {

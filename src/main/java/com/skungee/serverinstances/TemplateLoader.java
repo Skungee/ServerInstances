@@ -64,6 +64,7 @@ public class TemplateLoader {
 				Template template = optional.get();
 				templates.removeIf(t -> t.getName().equals(template.getName()));
 				templates.add(template);
+				System.out.println("Added template " + template.getName());
 				// reset key and remove from set if directory is no longer accessible.
 				boolean valid = key.reset();
 				if (!valid) {
@@ -97,6 +98,7 @@ public class TemplateLoader {
 	private Template loadTemplate(File directory, Configuration configuration) {
 		String motd = configuration.getString("motd", "A ServerInstance server");
 		boolean restricted = configuration.getBoolean("restricted", false);
+		boolean duplicates = configuration.getBoolean("duplicates", true);
 		String jar = configuration.getString("jar-name", "spigot.jar");
 		String name = configuration.getString("name", "Template");
 		boolean save = configuration.getBoolean("save", false);
@@ -104,9 +106,13 @@ public class TemplateLoader {
 		String xmx = configuration.getString("xmx", "1G");
 		int port = configuration.getInt("port");
 		String[] commands = configuration.getStringList("command-arguments").stream().toArray(String[]::new);
+		Template template = null;
 		if (port > 0)
-			return new Template(directory, restricted, motd, name, port, xmx, xms, jar, save, commands);
-		return new Template(directory, restricted, motd, name, xmx, xms, jar, save, commands);
+			template = new Template(directory, restricted, motd, name, port, xmx, xms, jar, save, duplicates, commands);
+		template = new Template(directory, restricted, motd, name, xmx, xms, jar, save, duplicates, commands);
+		if (configuration.getBoolean("disabled", false))
+			template.setDisabled(true);
+		return template;
 	}
 
 	public Set<Template> getTemplates() {
