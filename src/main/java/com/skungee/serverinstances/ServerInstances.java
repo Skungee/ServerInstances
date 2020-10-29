@@ -162,7 +162,7 @@ public class ServerInstances {
 
 	public enum State {RUNNING, STARTING, IDLE}
 
-	protected class Instance {
+	public class Instance {
 
 		private final InetSocketAddress address;
 		private final Template template;
