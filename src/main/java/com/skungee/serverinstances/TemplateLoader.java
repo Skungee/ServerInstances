@@ -109,7 +109,8 @@ public class TemplateLoader {
 		Template template = null;
 		if (port > 0)
 			template = new Template(directory, restricted, motd, name, port, xmx, xms, jar, save, duplicates, commands);
-		template = new Template(directory, restricted, motd, name, xmx, xms, jar, save, duplicates, commands);
+		else 
+			template = new Template(directory, restricted, motd, name, xmx, xms, jar, save, duplicates, commands);
 		if (configuration.getBoolean("disabled", false))
 			template.setDisabled(true);
 		return template;
