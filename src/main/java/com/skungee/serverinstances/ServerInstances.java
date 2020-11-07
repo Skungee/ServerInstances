@@ -108,8 +108,10 @@ public class ServerInstances {
 	private void loadConfiguration() {
 		File file = new File(DATA_FOLDER, "configuration.yml");
 		try (InputStream in = ServerInstances.class.getResourceAsStream("configuration.yml")) {
-			if (!file.exists())
+			if (!file.exists()) {
+				file.createNewFile();
 				Files.copy(in, file.toPath());
+			}
 			configuration = ConfigurationProvider.getProvider(YamlConfiguration.class).load(file);
 		} catch (IOException e) {
 			System.out.println("Could not create and save serverinstances configuration.yml.");
