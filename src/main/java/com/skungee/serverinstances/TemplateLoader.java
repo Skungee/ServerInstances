@@ -55,6 +55,7 @@ public class TemplateLoader {
 				} catch (InterruptedException e) {
 					continue;
 				}
+				key.pollEvents();
 				File directory = keys.get(key);
 				if (directory == null)
 					continue;
