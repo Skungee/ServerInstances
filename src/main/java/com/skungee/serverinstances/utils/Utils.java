@@ -1,5 +1,7 @@
 package com.skungee.serverinstances.utils;
 
+import net.md_5.bungee.api.ChatColor;
+
 import java.io.*;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -9,6 +11,8 @@ import java.net.SocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Utils {
 
@@ -80,6 +84,30 @@ public class Utils {
 			port++;
 		}
 		return -1;
+	}
+
+	public static String colorHex(String input) {
+		if (input == null) return "";
+
+		Matcher matcher = Pattern.compile("&#([A-Fa-f0-9]{6})").matcher(input);
+
+		while(matcher.find()) {
+			input = input.replace(matcher.group(), ChatColor.of(matcher.group()).toString());
+		}
+
+		return input;
+	}
+
+	public static String color(String input) {
+		return input == null ? "" : colorHex(ChatColor.translateAlternateColorCodes('&', input));
+	}
+
+	public static String colorAndStrip(String input) {
+		return input == null ? "" : stripColor(color(input));
+	}
+
+	public static String stripColor(String input) {
+		return input == null ? "" : ChatColor.stripColor(input);
 	}
 
 }

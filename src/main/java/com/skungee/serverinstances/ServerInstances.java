@@ -9,11 +9,7 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 import com.sitrica.japson.gson.JsonObject;
 import com.sitrica.japson.server.JapsonServer;
@@ -22,13 +18,21 @@ import com.skungee.serverinstances.objects.RunningProperties;
 import com.skungee.serverinstances.objects.Template;
 import com.skungee.serverinstances.utils.Utils;
 
+import net.md_5.bungee.api.AbstractReconnectHandler;
 import net.md_5.bungee.api.ProxyServer;
+import net.md_5.bungee.api.chat.BaseComponent;
+import net.md_5.bungee.api.chat.TextComponent;
+import net.md_5.bungee.api.config.ServerInfo;
+import net.md_5.bungee.api.connection.ProxiedPlayer;
+import net.md_5.bungee.api.event.ServerKickEvent;
+import net.md_5.bungee.api.plugin.Listener;
 import net.md_5.bungee.api.plugin.Plugin;
 import net.md_5.bungee.config.Configuration;
 import net.md_5.bungee.config.ConfigurationProvider;
 import net.md_5.bungee.config.YamlConfiguration;
+import net.md_5.bungee.event.EventHandler;
 
-public class ServerInstances {
+public class ServerInstances implements Listener {
 
 	final File DATA_FOLDER, INSTANCES_FOLDER, SAVED_FOLDER, TEMPLATE_FOLDER, RUNNING_SERVERS_FOLDER, RUN_SCRIPTS;
 	private final List<Instance> instances = new ArrayList<>();
@@ -62,13 +66,14 @@ public class ServerInstances {
 			SAVED_FOLDER.mkdir();
 		loadConfiguration();
 		try {
-			bindAddress = InetAddress.getByName(configuration.getString("instances.bind-address", "127.0.0.1"));
+			bindAddress = InetAddress.getByName(configuration.getString("instances.address-bind", "127.0.0.1"));
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
 		templateLoader = new TemplateLoader(this);
 		manager = new ServerManager(this);
 		max = configuration.getInt("instances.max-servers", 25);
+		ProxyServer.getInstance().getPluginManager().registerListener(plugin, this);
 		try {
 			japson = new JapsonServer(configuration.getString("bootloader.address-bind", "127.0.0.1"), configuration.getInt("bootloader.port", 6110))
 					.setPassword(configuration.getString("bootloader.password", "serverinstances"));
@@ -80,29 +85,26 @@ public class ServerInstances {
 					int port = object.get("port").getAsInt();
 					String address = object.get("address").getAsString();
 					InetSocketAddress socketAddress = new InetSocketAddress(address, port);
-					ProxyServer.getInstance().getServers().entrySet().stream()
-							.filter(entry -> entry.getValue().getSocketAddress().equals(socketAddress))
-							.map(entry -> entry.getValue())
+					ProxyServer.getInstance().getServers().values().stream()
+							.filter(serverInfo -> serverInfo.getSocketAddress().equals(socketAddress))
 							.findFirst()
-							.ifPresent(info -> manager.started(info));
+							.ifPresent(manager::started);
 				}
 			});
 		} catch (UnknownHostException | SocketException e) {
 			e.printStackTrace();
 		}
 		//If the bungeecord gets forced closed.
-		Runtime.getRuntime().addShutdownHook(new Thread() {
-			public void run() {
-				if (instances.isEmpty())
-					return;
-				for (Instance instance : instances) {
-					try {
-						manager.shutdown(instance);
-						Thread.sleep(2000L);
-					} catch (InterruptedException | IOException e) {}
-				}
+		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+			if (instances.isEmpty())
+				return;
+			for (Instance instance : instances) {
+				try {
+					manager.shutdown(instance);
+					Thread.sleep(2000L);
+				} catch (InterruptedException | IOException ignored) {}
 			}
-		});
+		}));
 	}
 
 	private void loadConfiguration() {
@@ -162,6 +164,47 @@ public class ServerInstances {
 
 	public int getMaxServers() {
 		return max;
+	}
+
+	@EventHandler
+	public void onServerKickEvent(ServerKickEvent event) {
+		if (!configuration.getBoolean("instances.fallback.enabled")) return;
+
+		ProxyServer proxy = ProxyServer.getInstance();
+		ProxiedPlayer player = event.getPlayer();
+		ServerInfo kickedFrom;
+
+		if (player.getServer() != null) {
+			kickedFrom = player.getServer().getInfo();
+		} else if (proxy.getReconnectHandler() != null) {
+			kickedFrom = proxy.getReconnectHandler().getServer(player);
+		} else {
+			kickedFrom = AbstractReconnectHandler.getForcedHost(player.getPendingConnection());
+			if (kickedFrom == null)
+				kickedFrom = proxy.getServerInfo(player.getPendingConnection().getListener().getServerPriority().get(0));
+		}
+
+		ServerInfo fallback = proxy.getServerInfo(configuration.getString("instances.fallback.server"));
+
+		if (fallback == null || kickedFrom == null)
+			return;
+		if (kickedFrom.equals(fallback))
+			return;
+
+		String reason = BaseComponent.toLegacyText(event.getKickReasonComponent());
+
+		String[] messages = configuration.getString("instances.fallback.message")
+				.replace("%previous%", kickedFrom.getName())
+				.replace("%kickmsg%", reason)
+				.split("\n");
+
+		event.setCancelled(true);
+		event.setCancelServer(fallback);
+
+		if (messages.length > 0 && !messages[0].equals("")) {
+			for (String line : messages)
+				player.sendMessage(new TextComponent(Utils.color(line)));
+		}
 	}
 
 	public enum State {RUNNING, STARTING, IDLE}
