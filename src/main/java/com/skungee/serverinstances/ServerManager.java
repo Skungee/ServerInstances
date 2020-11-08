@@ -64,8 +64,7 @@ public class ServerManager {
 	}
 
 	public Set<Instance> getInstancesByTemplate(String template) {
-		return running.entrySet().stream()
-				.map(entry -> entry.getKey())
+		return running.keySet().stream()
 				.filter(instance -> instance.getTemplate().getName().equalsIgnoreCase(template))
 				.collect(Collectors.toSet());
 	}
@@ -103,8 +102,7 @@ public class ServerManager {
 		boolean windows = System.getProperty("os.name").matches("(?i)(.*)(windows)(.*)");
 		if (windows)
 			commands.add("-Djline.terminal=jline.UnsupportedTerminal");
-		for (String command : additional)
-			commands.add(command);
+		commands.addAll(additional);
 		commands.add("-jar");
 		commands.add(template.getJarName());
 		if (windows)
@@ -121,16 +119,26 @@ public class ServerManager {
 		// Setup
 		ServerInfo info = ProxyServer.getInstance().constructServerInfo(name, instance.getAddress(), ChatColor.translateAlternateColorCodes('&', template.getMotd()), template.isRestricted());
 		File folder = new File(origin.getRunningServerFolder(), name);
-		if (folder.exists()) {
-			if (containsName(name)) {
-				//TODO maybe handle stopping the already running server?
-				return;
+
+		// Choose correct folder for saved servers
+		if (!template.isSaving()) {
+			if (folder.exists()) {
+				if (containsName(name)) {
+					//TODO maybe handle stopping the already running server?
+					return;
+				}
+				//TODO handle deletion if the user doesn't want it for some reason.
+				Utils.deleteDirectory(folder);
 			}
-			//TODO handle deletion if the user doesn't want it for some reason.
-			Utils.deleteDirectory(folder);
+		} else {
+			folder = new File(origin.getSavedServerFolder(), name);
 		}
-		folder.mkdir();
-		template.copyToDirectory(folder);
+
+		if (!folder.exists()) {
+			folder.mkdir();
+			template.copyToDirectory(folder);
+		}
+
 		ProcessBuilder processBuilder = new ProcessBuilder(commands).directory(folder);
 
 		// Start
@@ -154,18 +162,18 @@ public class ServerManager {
 			File folder = new File(origin.getRunningServerFolder(), info.getName());
 //			if (instance.getTemplate().isSaving())
 //				Files.copy(folder, directory);
-			Utils.deleteDirectory(folder);
+			if (!instance.getTemplate().isSaving()) Utils.deleteDirectory(folder);
 			process.destroy();
 			running.remove(instance);
 		}, 350, TimeUnit.MILLISECONDS);
 	}
 
 	public void shutdownAll() throws IOException {
-		for (Iterator<Instance> iterator = running.keySet().iterator(); iterator.hasNext();)
-			shutdown(iterator.next());
+		for (Instance instance : running.keySet())
+			shutdown(instance);
 		running.clear();
-		for (Iterator<Instance> iterator = starting.keySet().iterator(); iterator.hasNext();)
-			shutdown(iterator.next());
+		for (Instance instance : starting.keySet())
+			shutdown(instance);
 		starting.clear();
 	}
 

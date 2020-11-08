@@ -140,6 +140,10 @@ public class ServerInstances {
 		return RUNNING_SERVERS_FOLDER;
 	}
 
+	public File getSavedServerFolder() {
+		return SAVED_FOLDER;
+	}
+
 	public List<Instance> getInstances() {
 		return Collections.unmodifiableList(instances);
 	}
