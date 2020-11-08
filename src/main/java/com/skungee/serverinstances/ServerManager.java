@@ -1,16 +1,8 @@
 package com.skungee.serverinstances;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.io.*;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -117,7 +109,7 @@ public class ServerManager {
 		}
 
 		// Setup
-		ServerInfo info = ProxyServer.getInstance().constructServerInfo(name, instance.getAddress(), ChatColor.translateAlternateColorCodes('&', template.getMotd()), template.isRestricted());
+		ServerInfo info = ProxyServer.getInstance().constructServerInfo(name, instance.getAddress(), Utils.color(template.getMotd()), template.isRestricted());
 		File folder = new File(origin.getRunningServerFolder(), name);
 
 		// Choose correct folder for saved servers
@@ -138,6 +130,8 @@ public class ServerManager {
 			folder.mkdir();
 			template.copyToDirectory(folder);
 		}
+
+		setPort(folder, instance.getAddress().getPort());
 
 		ProcessBuilder processBuilder = new ProcessBuilder(commands).directory(folder);
 
@@ -175,6 +169,57 @@ public class ServerManager {
 		for (Instance instance : starting.keySet())
 			shutdown(instance);
 		starting.clear();
+	}
+
+	private void setPort(File folder, int port) {
+		File propertiesFile = new File(folder, "server.properties");
+		Properties properties = new Properties();
+		InputStream input = null;
+
+		if (!propertiesFile.exists()) {
+			System.out.println("There was no server.properties for template: " + folder.getName());
+			return;
+		}
+
+		try {
+			input = new FileInputStream(propertiesFile);
+			properties.load(input);
+		} catch (IOException e) {
+			System.out.println("There was an error loading the server.properties while setting up port of template: " + folder.getName());
+			e.printStackTrace();
+		} finally {
+			if (input != null) {
+				try {
+					input.close();
+				} catch (IOException e) {
+					System.out.println("There was an error reading server.properties for template: " + folder.getName());
+					e.printStackTrace();
+				}
+			}
+		}
+
+		OutputStream output = null;
+
+		try {
+			output = new FileOutputStream(propertiesFile);
+
+			properties.setProperty("server-port", port + "");
+			properties.setProperty("query.port", port + "");
+
+			properties.store(output, null);
+		} catch (IOException e) {
+			System.out.println("There was an error loading the server.properties of template: " + folder.getName());
+			e.printStackTrace();
+		} finally {
+			if (output != null) {
+				try {
+					output.close();
+				} catch (IOException e) {
+					System.out.println("There was an error saving server.properties for template: " + folder.getName());
+					e.printStackTrace();
+				}
+			}
+		}
 	}
 
 	public Optional<RunningProperties> getRunningProperties(Instance instance) {
