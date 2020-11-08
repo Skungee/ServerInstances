@@ -36,7 +36,7 @@ Note: you can just directly put your token as the password, but we highly discou
 ```sh
 git clone https://github.com/Skungee/ServerInstances
 cd ServerInstances
-gradlew build
+gradlew clean shadow
 ```
 
 The output jars will be found in the `build/libs` directory of each respective folder
