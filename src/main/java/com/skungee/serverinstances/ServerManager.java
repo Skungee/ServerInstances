@@ -156,8 +156,8 @@ public class ServerManager {
 			File folder = new File(origin.getRunningServerFolder(), info.getName());
 //			if (instance.getTemplate().isSaving())
 //				Files.copy(folder, directory);
-			if (!instance.getTemplate().isSaving()) Utils.deleteDirectory(folder);
 			process.destroy();
+			if (!instance.getTemplate().isSaving()) Utils.deleteDirectory(folder);
 			running.remove(instance);
 		}, 350, TimeUnit.MILLISECONDS);
 	}
