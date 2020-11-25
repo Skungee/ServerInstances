@@ -59,20 +59,12 @@ public class Utils {
 	}
 
 	public static boolean isTaken(InetSocketAddress address) {
-		ServerSocket socket = null;
-		try {
-			socket = new ServerSocket();
+		try (ServerSocket socket = new ServerSocket()) {
 			socket.bind(address);
 			socket.setReuseAddress(true);
 			return false;
 		} catch (IOException e) {
 			return true;
-		} finally {
-			if (socket != null) {
-				try {
-					socket.close();
-				} catch (IOException e) {}
-			}
 		}
 	}
 
